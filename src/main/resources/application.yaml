@@ -1,3 +1,33 @@
 spring:
   application:
     name: financedataprocessing
+  datasource:
+    url: jdbc:h2:mem:finance-db;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  web:
+    error:
+      include-message: always
+
+app:
+  auth:
+    audience: finance-dashboard
+    issuer: finance-data-processing
+    token-ttl-hours: 12
+  rate-limit:
+    max-requests: 60
+    window-seconds: 60
+  seed:
+    enabled: true
