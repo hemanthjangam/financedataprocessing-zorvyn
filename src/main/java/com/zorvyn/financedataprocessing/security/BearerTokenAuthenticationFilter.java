@@ -48,7 +48,7 @@ public class BearerTokenAuthenticationFilter extends OncePerRequestFilter {
                 || user.getStatus() == UserStatus.INACTIVE
                 || !user.getEmail().equalsIgnoreCase(parsedToken.email())
                 || user.getRole() != parsedToken.role()
-                || (user.getTokenInvalidBefore() != null && parsedToken.issuedAt().isBefore(user.getTokenInvalidBefore()))) {
+                || (user.getTokenInvalidBefore() != null && !parsedToken.issuedAt().isAfter(user.getTokenInvalidBefore()))) {
             filterChain.doFilter(request, response);
             return;
         }

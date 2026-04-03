@@ -46,6 +46,8 @@ public class AuthService {
 
     public void logout(UserAccount user) {
         // Any token issued before this timestamp is treated as logged out.
-        user.setTokenInvalidBefore(Instant.now());
+        UserAccount managedUser = userAccountRepository.findById(user.getId())
+                .orElseThrow(() -> new UnauthorizedException("Authenticated user could not be resolved"));
+        managedUser.setTokenInvalidBefore(Instant.now());
     }
 }

@@ -2,6 +2,8 @@ package com.zorvyn.financedataprocessing.config;
 
 import com.zorvyn.financedataprocessing.security.BearerTokenAuthenticationFilter;
 import com.zorvyn.financedataprocessing.security.RateLimitingFilter;
+import com.zorvyn.financedataprocessing.security.RestAccessDeniedHandler;
+import com.zorvyn.financedataprocessing.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -20,10 +22,19 @@ public class SecurityConfig {
 
     private final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
-    public SecurityConfig(BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter, RateLimitingFilter rateLimitingFilter) {
+    public SecurityConfig(
+            BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            RateLimitingFilter rateLimitingFilter,
+            RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+            RestAccessDeniedHandler restAccessDeniedHandler
+    ) {
         this.bearerTokenAuthenticationFilter = bearerTokenAuthenticationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
     @Bean
@@ -39,6 +50,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
+                )
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

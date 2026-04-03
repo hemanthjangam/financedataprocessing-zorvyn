@@ -30,7 +30,8 @@ class AuthServiceIntegrationTest {
         var user = userAccountRepository.findByEmailIgnoreCase("admin@zorvyn.local").orElseThrow();
         authService.logout(user);
 
-        assertNotNull(user.getTokenInvalidBefore());
-        assertTrue(user.getTokenInvalidBefore().isBefore(response.expiresAt()));
+        var reloadedUser = userAccountRepository.findByEmailIgnoreCase("admin@zorvyn.local").orElseThrow();
+        assertNotNull(reloadedUser.getTokenInvalidBefore());
+        assertTrue(reloadedUser.getTokenInvalidBefore().isBefore(response.expiresAt()));
     }
 }

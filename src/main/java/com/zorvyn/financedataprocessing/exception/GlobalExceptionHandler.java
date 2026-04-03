@@ -5,8 +5,12 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -43,9 +47,35 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Validation failed", details);
     }
 
+    @ExceptionHandler(BindException.class)
+    ResponseEntity<ApiErrorResponse> handleBind(BindException exception) {
+        List<String> details = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(this::formatFieldError)
+                .toList();
+        return build(HttpStatus.BAD_REQUEST, "Validation failed", details);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ApiErrorResponse> handleForbidden(AccessDeniedException exception) {
-        return build(HttpStatus.FORBIDDEN, exception.getMessage(), List.of());
+        return build(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", List.of());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        String detail = exception.getName() + ": invalid value";
+        return build(HttpStatus.BAD_REQUEST, "Request parameter type mismatch", List.of(detail));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ApiErrorResponse> handleMissingParameter(MissingServletRequestParameterException exception) {
+        return build(HttpStatus.BAD_REQUEST, "Missing required request parameter", List.of(exception.getParameterName()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiErrorResponse> handleUnreadableBody(HttpMessageNotReadableException exception) {
+        return build(HttpStatus.BAD_REQUEST, "Malformed request body", List.of());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -55,7 +85,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", List.of(exception.getMessage()));
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", List.of());
     }
 
     private String formatFieldError(FieldError error) {

@@ -1,5 +1,6 @@
 package com.zorvyn.financedataprocessing.security;
 
+import com.zorvyn.financedataprocessing.exception.ApiErrorWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,11 +22,14 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final Map<String, RateLimitWindow> windows = new ConcurrentHashMap<>();
     private final int maxRequests;
     private final Duration windowDuration;
+    private final ApiErrorWriter apiErrorWriter;
 
     public RateLimitingFilter(
+            ApiErrorWriter apiErrorWriter,
             @Value("${app.rate-limit.max-requests:60}") int maxRequests,
             @Value("${app.rate-limit.window-seconds:60}") long windowSeconds
     ) {
+        this.apiErrorWriter = apiErrorWriter;
         this.maxRequests = maxRequests;
         this.windowDuration = Duration.ofSeconds(windowSeconds);
     }
@@ -44,11 +48,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         RateLimitWindow window = windows.compute(clientKey, (key, existing) -> refreshWindow(existing, now));
 
         if (window.requestCount() >= maxRequests) {
-            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setContentType("application/json");
-            response.getWriter().write("""
-                    {"timestamp":"%s","status":429,"error":"Too Many Requests","message":"Rate limit exceeded. Please retry later.","details":[]}
-                    """.formatted(now));
+            apiErrorWriter.write(response, HttpStatus.TOO_MANY_REQUESTS, "Rate limit exceeded. Please retry later.", List.of());
             return;
         }
 
