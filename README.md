@@ -1,6 +1,17 @@
-# Finance Data Processing and Access Control Backend
+# Finance Data Processing Backend
 
-Backend API for a finance dashboard system with role-based access control, financial record management, and summary analytics.
+Spring Boot backend for a finance dashboard with role-based access control, PASETO authentication, financial record management, and summary analytics.
+
+## Overview
+
+This project exposes a secured REST API for:
+
+- authenticating users with bearer tokens
+- managing users with role and status controls
+- creating, updating, listing, and soft-deleting financial records
+- retrieving dashboard summaries for income, expense, balance, trends, and recent activity
+
+The application is backend-only and uses an in-memory H2 database for local execution.
 
 ## Tech Stack
 
@@ -10,59 +21,70 @@ Backend API for a finance dashboard system with role-based access control, finan
 - Spring Security
 - Spring Data JPA
 - H2 Database
+- Maven
 
-## Features
+## Core Features
 
 - PASETO-based authentication
-- User management with roles and active/inactive status
-- Role-based access control for `VIEWER`, `ANALYST`, and `ADMIN`
-- Financial record CRUD operations
-- Record filtering by type, category, and date range
+- Role-based access control for `ADMIN`, `ANALYST`, and `VIEWER`
+- User management with active and inactive account status
+- Financial record CRUD with soft delete support
+- Filtering by type, category, and date range
 - Pagination for record listing
-- Soft delete for financial records
-- In-memory rate limiting for API protection
-- Dashboard summary APIs for income, expenses, net balance, category totals, recent activity, and monthly trends
-- Input validation and centralized error handling
+- Dashboard summary with totals, category breakdowns, monthly trends, and recent activity
+- Centralized exception handling with consistent API error responses
+- In-memory request rate limiting
+- Seed data for local demo and testing
 
 ## Access Model
 
-- `VIEWER`: dashboard summary only
-- `ANALYST`: dashboard summary and record viewing
-- `ADMIN`: full access to users, records, and dashboard data
+| Role | Access |
+| --- | --- |
+| `VIEWER` | Dashboard summary only |
+| `ANALYST` | Dashboard summary and record viewing |
+| `ADMIN` | Full access to users, records, and dashboard data |
 
 ## Demo Credentials
 
-- `admin@zorvyn.local` / `Admin@123`
-- `analyst@zorvyn.local` / `Analyst@123`
-- `viewer@zorvyn.local` / `Viewer@123`
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@zorvyn.local` | `Admin@123` |
+| Analyst | `analyst@zorvyn.local` | `Analyst@123` |
+| Viewer | `viewer@zorvyn.local` | `Viewer@123` |
 
-## Authentication
+## Running Locally
 
-Use `POST /api/auth/login` to get a PASETO bearer token, then send `Authorization: Bearer <token>` with protected requests.
-
-## Run the Project
+Start the application:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-Application runs on `http://localhost:8080`.
+The API runs on `http://localhost:8080`.
 
-## Main Endpoints
+Useful local endpoints:
 
-- `GET /api/health`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/dashboard/summary`
-- `GET /api/records`
-- `POST /api/records`
-- `PUT /api/records/{recordId}`
-- `DELETE /api/records/{recordId}`
-- `GET /api/users`
-- `POST /api/users`
-- `PUT /api/users/{userId}`
+- API health: `GET /api/health`
+- H2 console: `http://localhost:8080/h2-console`
 
-## Example Request
+## Running Tests
+
+Run the full test suite:
+
+```bash
+./mvnw test
+```
+
+The suite includes service, acceptance, and system-level endpoint coverage.
+
+## Authentication Flow
+
+1. Call `POST /api/auth/login` with an email and password.
+2. Read the returned `accessToken`.
+3. Send `Authorization: Bearer <token>` on protected requests.
+4. Call `POST /api/auth/logout` to revoke existing tokens for the current user.
+
+Example login request:
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
@@ -73,8 +95,59 @@ curl -X POST http://localhost:8080/api/auth/login \
   }'
 ```
 
-## Notes
+## API Summary
 
-- The project is intentionally backend-only because the assignment focuses on backend design and API implementation.
-- H2 is used for simple local execution without external database setup.
-# financedataprocessing-zorvyn
+### Public
+
+- `GET /api/health`
+- `POST /api/auth/login`
+
+### Authenticated
+
+- `POST /api/auth/logout`
+
+### Dashboard
+
+- `GET /api/dashboard/summary`
+
+### Records
+
+- `GET /api/records`
+- `POST /api/records`
+- `PUT /api/records/{recordId}`
+- `DELETE /api/records/{recordId}`
+
+### Users
+
+- `GET /api/users`
+- `POST /api/users`
+- `PUT /api/users/{userId}`
+
+## Record Query Parameters
+
+`GET /api/records` supports:
+
+- `type`
+- `category`
+- `from`
+- `to`
+- `page`
+- `size`
+
+## Configuration Notes
+
+Current local defaults in `application.yaml` include:
+
+- H2 in-memory database
+- `ddl-auto: create-drop`
+- enabled seed data
+- enabled H2 console
+- 12-hour token TTL
+- 60 requests per 60-second rate-limit window
+
+## Implementation Notes
+
+- Soft delete is used for financial records instead of hard deletion.
+- Logout works by invalidating tokens issued before the recorded logout time.
+- Error responses are returned in a consistent JSON structure across controller and security failures.
+- The project is designed for local development and review, not production deployment as-is.
